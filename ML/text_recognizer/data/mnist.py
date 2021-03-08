@@ -16,7 +16,7 @@ class MNIST(BaseDataModule):
     """
 
     def __init__(self, args: argparse.Namespace) -> None:
-        super().__init__()
+        super().__init__(args)
         self.data_dir = DOWNLOADED_DATA_DIRNAME
         self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307, ), (0.3081))])
         self.input_dims = (1, 28, 28)
