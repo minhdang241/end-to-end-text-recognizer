@@ -62,7 +62,7 @@ class CNN(nn.Module):
         @returns: torch.Tensor of shape (B, C) with C is the number of classes
         """
         B_, C_, H, W = x.shape
-        assert H == W == IMAGE_SIZE
+        #assert H == W == IMAGE_SIZE
         out = self.conv1(x)
         out = self.conv2(out)
         out = self.max_pool(out)
