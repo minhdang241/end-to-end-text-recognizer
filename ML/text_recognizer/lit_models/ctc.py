@@ -4,7 +4,7 @@ import torch
 
 from .base import BaseLitModel
 from .metrics import CharacterErrorRate
-from .util import first_element
+from .util import first_element, ctcBeamSearch
 
 def compute_input_lengths(padded_sequences: torch.Tensor) -> torch.Tensor:
     """
@@ -132,6 +132,18 @@ class CTCLitModel(BaseLitModel):
         decoded = torch.ones((B, max_length)).type_as(logprobs).int() * self.padding_index
         for i in range(B):
             seq = [b for b, _g in itertools.groupby(argmax[i].tolist()) if b != self.blank_index][:max_length]
+            for ii, char in enumerate(seq):
+                decoded[i, ii] = char
+        return decoded
+    
+    def beam_search(self, logprobs: torch.Tensor, max_length: int) -> torch.Tensor:
+        """
+        @params: logprobs shape of (B, C, S)
+        """
+        B = logprobs.shape[0]
+        decoded = torch.ones((B, max_length)).type_as(logprobs).int() * self.padding_index
+        for i in range(B):
+            seq = ctcBeamSearch(logprobs[i], self.padding_index, max_length, None) 
             for ii, char in enumerate(seq):
                 decoded[i, ii] = char
         return decoded

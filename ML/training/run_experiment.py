@@ -6,7 +6,7 @@ import torch
 import pytorch_lightning as pl
 import pprint
 from text_recognizer import lit_models
-from .util import ImagePredictionLogger
+from util import ImagePredictionLogger
 
 # To ensure reproducibility
 pl.seed_everything(24)
