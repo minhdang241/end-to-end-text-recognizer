@@ -49,7 +49,7 @@ class BaseDataModule(pl.LightningDataModule):
         self.num_workers = self.args.get("num_workers", NUM_WORKERS)
 
         # Set at the subclass
-        self.input_dims = None
+        self.dims = None
         self.output_dims = None
         self.mapping = None
 
@@ -69,7 +69,7 @@ class BaseDataModule(pl.LightningDataModule):
     
     def config(self):
         """Return settings of the dataset, which will be passed to the model"""
-        return {"input_dims": self.input_dims, "output_dims": self.output_dims, "mapping": self.mapping}
+        return {"input_dims": self.dims, "output_dims": self.output_dims, "mapping": self.mapping}
 
     def prepare_data(self):
         """

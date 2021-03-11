@@ -66,11 +66,12 @@ def addBeam(beamState, labeling):
 		beamState.entries[labeling] = BeamEntry()
 
 
-def ctcBeamSearch(mat, classes, lm, beamWidth=25):
+def ctcBeamSearch(mat, padding_index, max_length, lm, beamWidth=25):
 	"beam search as described by the paper of Hwang et al. and the paper of Graves et al."
 
-	blankIdx = len(classes)
+	blankIdx = padding_index
 	maxT, maxC = mat.shape
+	max_length = max_length 
 
 	# initialise beam state
 	last = BeamState()
@@ -80,7 +81,7 @@ def ctcBeamSearch(mat, classes, lm, beamWidth=25):
 	last.entries[labeling].prTotal = 1
 
 	# go over all time-steps
-	for t in range(maxT):
+	for t in range(max_length):
 		curr = BeamState()
 
 		# get beam-labelings of best beams
@@ -142,9 +143,9 @@ def ctcBeamSearch(mat, classes, lm, beamWidth=25):
 	bestLabeling = last.sort()[0] # get most probable labeling
 
 	# map labels to chars
-	res = ''
-	for l in bestLabeling:
-		res += classes[l]
+	# res = ''
+	# for l in bestLabeling:
+	# 	res += classes[l]
 
 	return list(bestLabeling)
 

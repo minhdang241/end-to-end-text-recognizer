@@ -86,8 +86,12 @@ def main():
         logger = pl.loggers.WandbLogger()
         logger.watch(model)
         logger.log_hyperparams(vars(args))
+        data.prepare_data()
+        data.setup()
         samples = next(iter(data.val_dataloader()))
-        callbacks.append(ImagePredictionLogger(samples))
+        callbacks.append(ImagePredictionLogger(samples, mapping=data.mapping))
+
+        
     
     args.weights_summary = "full"
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger, default_root_dir="training/logs")

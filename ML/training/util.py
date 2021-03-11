@@ -9,8 +9,11 @@ class ImagePredictionLogger(pl.Callback):
         self.val_labels = self.val_labels[:num_samples]
         self.mapping = mapping 
 
-    def convert_y_label_to_string(self, y):
-        return ''.join([self.mapping[i] for i in y if i != 3])
+    def convert_y_label_to_string(self, ys):
+        results = []
+        for y in ys:
+            results.append(''.join([self.mapping[i] for i in y if i != 3]))
+        return results
 
           
     def on_validation_epoch_end(self, trainer, pl_module):
