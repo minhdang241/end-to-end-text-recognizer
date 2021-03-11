@@ -59,5 +59,5 @@ def convert_strings_to_labels(strings: Sequence[str], mapping: Dict[str, int], l
         tokens = list(string)
         tokens = ["<S>", *tokens, "<E>"]
         for j, token in enumerate(tokens):
-            labels[i][j] = mapping(token)
+            labels[i][j] = mapping[token]
     return labels

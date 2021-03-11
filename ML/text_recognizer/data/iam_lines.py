@@ -1,8 +1,8 @@
 """
-IAMLines class
+IamLinesDataset class.
 
-Using this class to process the dataset
-Generating data from raw dataset (lines from paragraphs)
+We will use a processed version of this dataset, without including code that did the processing.
+We will look at how to generate processed data from raw IAM data in the IamParagraphsDataset.
 """
 from pathlib import Path
 from typing import Sequence
@@ -17,44 +17,52 @@ from torchvision import transforms
 
 from text_recognizer.data.util import BaseDataset, convert_strings_to_labels
 from text_recognizer.data.base_data_module import BaseDataModule, load_and_print_info
+from text_recognizer.data.emnist import EMNIST
 from text_recognizer.data.iam import IAM
 
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-
-ImageFile.LOAD_TRUNCATED_IMAGES =True
-PROCESSED_DATA_DIRNAME = BaseDataModule.data_dirname()/"processed"/"iam_lines"
+PROCESSED_DATA_DIRNAME = BaseDataModule.data_dirname() / "processed" / "iam_lines"
 TRAIN_FRAC = 0.8
 IMAGE_HEIGHT = 56
-IMAGE_WIDTH = 1024
+IMAGE_WIDTH = 1024  # Rounding up the actual empirical max to a power of 2
 IAM_ESSENTIALS = Path(__file__).parents[0].resolve()/"iam_essentials.json"
-
 class IAMLines(BaseDataModule):
     """
-    IAM Handwriting database lines
+    IAM Handwriting database lines.
     """
 
-    def __init__(self, args: argparse.Namespace = None) -> None:
+    def __init__(self, args: argparse.Namespace = None):
         super().__init__(args)
-        self.augment = self.args.get("augement_data", "true") == "true"
+        self.augment = self.args.get("augment_data", "true") == "true"
         with open(IAM_ESSENTIALS) as f:
             essentials = json.load(f)
         self.mapping = list(essentials["characters"])
-        self.inverse_mapping = {v:k for k,v in enumerate(self.mapping)}
-        self.input_dims = (1, IMAGE_HEIGHT, IMAGE_WIDTH)
-        self.output_dims = (89, 1)
+        self.inverse_mapping = {v: k for k, v in enumerate(self.mapping)}
+        self.dims = (1, IMAGE_HEIGHT, IMAGE_WIDTH)  # We assert that this is correct in setup()
+        self.output_dims = (89, 1)  # We assert that this is correct in setup()
+        self.data_train = None
+        self.data_val = None
+        self.data_test = None
+
+    @staticmethod
+    def add_to_argparse(parser):
+        BaseDataModule.add_to_argparse(parser)
+        parser.add_argument("--augment_data", type=str, default="true")
+        return parser
 
     def prepare_data(self):
         if PROCESSED_DATA_DIRNAME.exists():
             return
-        
+
         print("Cropping IAM line regions...")
         iam = IAM()
-        iam.prepare_data() # Download and extract the dataset file if necessary
+        iam.prepare_data()
         crops_trainval, labels_trainval = line_crops_and_labels(iam, 'trainval')
         crops_test, labels_test = line_crops_and_labels(iam, 'test')
 
         shapes = np.array([crop.size for crop in crops_trainval + crops_test])
-        aspect_ratios = shapes[:, 0]/shapes[:, 1]
+        aspect_ratios = shapes[:, 0] / shapes[:, 1]
 
         print("Saving images, labels, and statistics...")
         save_images_and_labels(crops_trainval, labels_trainval, 'trainval')
@@ -75,7 +83,7 @@ class IAMLines(BaseDataModule):
         max_label_length = max([len(label) for label in labels_trainval + labels_test]) + 2  # Add 2 because of start and end tokens.
         output_dims = (max_label_length, 1)
         if output_dims != self.output_dims:
-            raise RuntimeError(input_dims, output_dims)
+            raise RuntimeError(dims, output_dims)
 
         if stage == "fit" or stage is None:
             filenames_trainval = sorted(
@@ -101,14 +109,13 @@ class IAMLines(BaseDataModule):
             x_test = [Image.open(filename) for filename in filenames_test]
             y_test = convert_strings_to_labels(labels_test, self.inverse_mapping, length=self.output_dims[0])
             self.data_test = BaseDataset(x_test, y_test, transform=get_transform(IMAGE_WIDTH))
-        
-    
+
     def __repr__(self) -> str:
         """Print info about the dataset."""
         basic = (
             "IAM Lines Dataset\n"  # pylint: disable=no-member
             f"Num classes: {len(self.mapping)}\n"
-            f"Dims: {self.input_dims}\n"
+            f"Dims: {self.dims}\n"
             f"Output dims: {self.output_dims}\n"
         )
         if self.data_train is None and self.data_val is None and self.data_test is None:
@@ -125,8 +132,9 @@ class IAMLines(BaseDataModule):
         )
         return basic + data
 
+
 def line_crops_and_labels(iam: IAM, split: str):
-    """Load IAM file labels and regions, and load line image crops."""
+    """Load IAM line labels and regions, and load line image crops."""
     crops = []
     labels = []
     for filename in iam.form_filenames:
@@ -141,40 +149,45 @@ def line_crops_and_labels(iam: IAM, split: str):
             for region in iam.line_regions_by_id[filename.stem]
         ]
     return crops, labels
-            
+
+
 def save_images_and_labels(crops: Sequence[Image.Image], labels: Sequence[str], split: str):
     (PROCESSED_DATA_DIRNAME / split).mkdir(parents=True, exist_ok=True)
 
-    with open(PROCESSED_DATA_DIRNAME/split/'_labels.json', 'w') as f:
+    with open(PROCESSED_DATA_DIRNAME / split / '_labels.json', 'w') as f:
         json.dump(labels, f)
     for ind, crop in enumerate(crops):
-        crop.save(PROCESSED_DATA_DIRNAME/split/f'{ind}.png')
-    
+        crop.save(PROCESSED_DATA_DIRNAME / split / f'{ind}.png')
+
 
 def get_transform(image_width, augment=False):
-    """
-    Augment with brightness, slight rotation, slant, translation, scale, and Gaussian noise.
-    """
+    """Augment with brightness, slight rotation, slant, translation, scale, and Gaussian noise."""
     def embed_crop(crop, augment=augment, image_width=image_width):
         image = Image.new("L", (image_width, IMAGE_HEIGHT))
 
         # Resize crop
         crop_width, crop_height = crop.size
         new_crop_height = IMAGE_HEIGHT
-        new_crop_width = int(new_crop_height/crop_height * crop_width)
+        new_crop_width = int(new_crop_height / crop_height * crop_width)
         if augment:
-            new_crop_width = int(new_crop_width*random.uniform(0.9, 1.1))
+            # Add random stretching
+            new_crop_width = int(new_crop_width * random.uniform(0.9, 1.1))
             new_crop_width = min(new_crop_width, image_width)
         crop_resized = crop.resize((new_crop_width, new_crop_height), resample=Image.BILINEAR)
 
-        x, y = 28, 0 
+        # Embed in the image
+        x, y = 28, 0
+        # if augment:
+        #     x = random.randint(0, (image_width - new_crop_width))
+        #     y = random.randint(0, (IMAGE_HEIGHT - new_crop_height))
         image.paste(crop_resized, (x, y))
+
         return image
-    
+
     transforms_list = [transforms.Lambda(embed_crop)]
     if augment:
         transforms_list += [
-            transforms.ColorJitter(brightness=(.8, 1.6)),
+            transforms.ColorJitter(brightness=(0.8, 1.6)),
             transforms.RandomAffine(
                 degrees=1,
                 shear=(-30, 20),
@@ -183,7 +196,10 @@ def get_transform(image_width, augment=False):
         ]
     transforms_list += [
         transforms.ToTensor(),
+        # transforms.Lambda(lambda x: x - 0.5)
     ]
     return transforms.Compose(transforms_list)
 
 
+if __name__ == "__main__":
+    load_and_print_info(IAMLines)
