@@ -17,7 +17,6 @@ from torchvision import transforms
 
 from text_recognizer.data.util import BaseDataset, convert_strings_to_labels
 from text_recognizer.data.base_data_module import BaseDataModule, load_and_print_info
-from text_recognizer.data.emnist import EMNIST
 from text_recognizer.data.iam import IAM
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
