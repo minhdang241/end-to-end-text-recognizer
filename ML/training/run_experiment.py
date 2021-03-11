@@ -6,6 +6,7 @@ import torch
 import pytorch_lightning as pl
 import pprint
 from text_recognizer import lit_models
+from .util import ImagePredictionLogger
 
 # To ensure reproducibility
 pl.seed_everything(24)
@@ -80,12 +81,14 @@ def main():
     
     logger = pl.loggers.TensorBoardLogger("training/logs")
 
+    callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10)]
     if args.wandb:
         logger = pl.loggers.WandbLogger()
         logger.watch(model)
         logger.log_hyperparams(vars(args))
+        samples = next(iter(data.val_dataloader()))
+        callbacks.append(ImagePredictionLogger(samples))
     
-    callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10)]
     args.weights_summary = "full"
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger, default_root_dir="training/logs")
     trainer.tune(lit_model, datamodule=data)
