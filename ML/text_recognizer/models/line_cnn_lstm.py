@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .line_cnn import LineCNN
+# from .line_cnn import LineCNN
+from .line_cnn_complex import LineCNNComplex as LineCNN
 
 LSTM_DIM = 128
 LSTM_LAYERS = 2
