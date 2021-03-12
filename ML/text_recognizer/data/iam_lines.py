@@ -23,9 +23,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 PROCESSED_DATA_DIRNAME = BaseDataModule.data_dirname() / "processed" / "iam_lines"
 TRAIN_FRAC = 0.8
-IMAGE_HEIGHT = 56
-IMAGE_WIDTH = 1024  # Rounding up the actual empirical max to a power of 2
+IMAGE_HEIGHT = 32
+IMAGE_WIDTH = 800 # Rounding up the actual empirical max to a power of 2
 IAM_ESSENTIALS = Path(__file__).parents[0].resolve()/"iam_essentials.json"
+
 class IAMLines(BaseDataModule):
     """
     IAM Handwriting database lines.
@@ -176,9 +177,6 @@ def get_transform(image_width, augment=False):
 
         # Embed in the image
         x, y = 28, 0
-        # if augment:
-        #     x = random.randint(0, (image_width - new_crop_width))
-        #     y = random.randint(0, (IMAGE_HEIGHT - new_crop_height))
         image.paste(crop_resized, (x, y))
 
         return image

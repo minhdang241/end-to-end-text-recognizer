@@ -7,7 +7,7 @@ import math
 import torch
 import torch.nn as nn
 
-from .line_cnn import LineCNN
+from .line_cnn_complex import LineCNNComplex as LineCNN
 
 
 TF_DIM = 256
