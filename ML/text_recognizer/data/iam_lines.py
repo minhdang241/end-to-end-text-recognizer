@@ -36,7 +36,7 @@ class IAMLines(BaseDataModule):
     def __init__(self, args: argparse.Namespace = None):
         super().__init__(args)
         self.augment = self.args.get("augment_data", "true") == "true"
-        self.max_length = self.args.set("max_length", MAX_LENGTH)
+        self.max_length = self.args.get("max_length", MAX_LENGTH)
         self.mapping = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", " ", "!", "\"", "#", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "?", "<P>","<B>"]
         self.inverse_mapping = {v: k for k, v in enumerate(self.mapping)}
         self.dims = (1, IMAGE_HEIGHT, IMAGE_WIDTH)  # We assert that this is correct in setup()
