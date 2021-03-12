@@ -23,7 +23,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 PROCESSED_DATA_DIRNAME = BaseDataModule.data_dirname() / "processed" / "iam_lines"
 TRAIN_FRAC = 0.8
-IMAGE_HEIGHT = 64
+IMAGE_HEIGHT = 32
 IMAGE_WIDTH = 800 # Rounding up the actual empirical max to a power of 2
 IAM_ESSENTIALS = Path(__file__).parents[0].resolve()/"iam_essentials.json"
 MAX_LENGTH = 42

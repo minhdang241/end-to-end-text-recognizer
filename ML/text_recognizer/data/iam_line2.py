@@ -17,7 +17,7 @@ from text_recognizer.data.iam import IAM
 PROCESSED_DATA_DIRNAME = BaseDataModule.data_dirname() / "processed" / "iam_lines2"
 META_FILE_PATH = BaseDataModule.data_dirname()/"downloaded/iam/iamdb/ascii/sentences.txt"
 TRAIN_FRAC = 0.8
-IMAGE_HEIGHT = 64
+IMAGE_HEIGHT = 32
 IMAGE_WIDTH = 800 # Rounding up the actual empirical max to a power of 2
 MAX_LENGTH = 42
 IAM_ESSENTIALS = Path(__file__).parents[0].resolve()/"iam_essentials.json"
