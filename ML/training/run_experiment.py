@@ -7,7 +7,10 @@ import pytorch_lightning as pl
 import pprint
 from text_recognizer import lit_models
 from util import ImagePredictionLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pathlib import Path
 
+SAVE_CHECKPOINT_PATH = Path(__file__).parents[0].resolve()/"checkpoints"
 # To ensure reproducibility
 pl.seed_everything(24)
 
@@ -80,8 +83,16 @@ def main():
         lit_model = lit_model_class(args=args, model=model)
     
     logger = pl.loggers.TensorBoardLogger("training/logs")
+    checkpoint_callback = ModelCheckpoint(
+        filepath=SAVE_CHECKPOINT_PATH/"cnnbilstm.ckpt",
+        save_best_only=True,
+        verbose=True,
+        monitor='val_cer',
+        mode='min'
+    )
 
-    callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10)]
+    callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10), checkpoint_callback]    
+
     if args.wandb:
         logger = pl.loggers.WandbLogger()
         logger.watch(model)
@@ -91,8 +102,6 @@ def main():
         samples = next(iter(data.val_dataloader()))
         callbacks.append(ImagePredictionLogger(samples, mapping=data.mapping))
 
-        
-    
     args.weights_summary = "full"
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger, default_root_dir="training/logs")
     trainer.tune(lit_model, datamodule=data)

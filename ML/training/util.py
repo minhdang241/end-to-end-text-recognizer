@@ -12,7 +12,7 @@ class ImagePredictionLogger(pl.Callback):
     def convert_y_label_to_string(self, ys):
         results = []
         for y in ys:
-            results.append(''.join([self.mapping[i] for i in y if i != 3]))
+            results.append(''.join([self.mapping[i] for i in y if i != self.mapping.index("<P>")]))
         return results
 
           

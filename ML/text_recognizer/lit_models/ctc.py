@@ -5,6 +5,7 @@ import torch
 from .base import BaseLitModel
 from .metrics import CharacterErrorRate
 from .util import first_element, ctcBeamSearch
+import wandb
 
 def compute_input_lengths(padded_sequences: torch.Tensor) -> torch.Tensor:
     """
@@ -36,10 +37,10 @@ class CTCLitModel(BaseLitModel):
     def __init__(self, model, args: argparse.Namespace = None):
         super().__init__(model, args)
 
-        inverse_mapping = {val: ind for ind, val in enumerate(self.model.data_config["mapping"])}
-        start_index = inverse_mapping["<S>"]
+        self.inverse_mapping = {val: ind for ind, val in enumerate(self.model.data_config["mapping"])}
+        # start_index = inverse_mapping["<S>"]
         self.blank_index = inverse_mapping["<B>"]
-        end_index = inverse_mapping["<E>"]
+        # end_index = inverse_mapping["<E>"]
         self.padding_index = inverse_mapping["<P>"]
 
         # Save hyperparameters
@@ -47,7 +48,8 @@ class CTCLitModel(BaseLitModel):
 
         self.loss_fn = torch.nn.CTCLoss(zero_infinity=True)
 
-        ignore_tokens = [start_index, end_index, self.padding_index]
+        # ignore_tokens = [start_index, end_index, self.padding_index]
+        ignore_tokens = [self.padding_index, self.blank_index]
         self.val_cer = CharacterErrorRate(ignore_tokens)
         self.test_cer = CharacterErrorRate(ignore_tokens)
 
@@ -100,12 +102,23 @@ class CTCLitModel(BaseLitModel):
         logits = self(x)
         logprobs = torch.log_softmax(logits, dim=1)
         decoded = self.greedy_decode(logprobs, max_length=y.shape[1])
+
+        try:
+            self.logger.experiment.log({
+                "test_pred_examples": [wandb.Image(x[0], 
+                caption=f"Pred:{convert_y_label_to_string(decoded[0])}, Label:{convert_y_label_to_string(y[0])}")]
+            })
+        except AttributeError:
+            pass
+
         self.test_acc(decoded, y)
         self.log("test_acc", self.test_acc, on_step=False, on_epoch=True)
         self.test_cer(decoded, y)
         self.log("test_cer", self.test_cer, on_step=False, on_epoch=True, prog_bar=True)
     
-
+    def convert_y_label_to_string(self, y):
+        result = ''.join([self.mapping[i] for i in y if i != self.inverse_mapping["<P>"]])
+        return result
 
     def greedy_decode(self, logprobs: torch.Tensor, max_length: int) -> torch.Tensor:
         """
@@ -135,15 +148,15 @@ class CTCLitModel(BaseLitModel):
             for ii, char in enumerate(seq):
                 decoded[i, ii] = char
         return decoded
-    
-    def beam_search(self, logprobs: torch.Tensor, max_length: int) -> torch.Tensor:
-        """
-        @params: logprobs shape of (B, C, S)
-        """
-        B = logprobs.shape[0]
-        decoded = torch.ones((B, max_length)).type_as(logprobs).int() * self.padding_index
-        for i in range(B):
-            seq = ctcBeamSearch(logprobs[i], self.padding_index, max_length, None) 
-            for ii, char in enumerate(seq):
-                decoded[i, ii] = char
-        return decoded
+
+    # def beam_search(self, logprobs: torch.Tensor, max_length: int) -> torch.Tensor:
+    #     """
+    #     @params: logprobs shape of (B, C, S)
+    #     """
+    #     B = logprobs.shape[0]
+    #     decoded = torch.ones((B, max_length)).type_as(logprobs).int() * self.padding_index
+    #     for i in range(B):
+    #         seq = ctcBeamSearch(logprobs[i], self.padding_index, max_length, None) 
+    #         for ii, char in enumerate(seq):
+    #             decoded[i, ii] = char
+    #     return decoded

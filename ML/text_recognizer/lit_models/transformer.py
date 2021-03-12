@@ -75,3 +75,5 @@ class TransformerLitModel(BaseLitModel):
         # Hide lines above until Lab 5
         self.test_cer(pred, y)
         self.log("test_cer", self.test_cer, on_step=False, on_epoch=True, prog_bar=True)
+    
+    
