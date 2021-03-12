@@ -23,9 +23,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 PROCESSED_DATA_DIRNAME = BaseDataModule.data_dirname() / "processed" / "iam_lines"
 TRAIN_FRAC = 0.8
-IMAGE_HEIGHT = 32
+IMAGE_HEIGHT = 64
 IMAGE_WIDTH = 800 # Rounding up the actual empirical max to a power of 2
 IAM_ESSENTIALS = Path(__file__).parents[0].resolve()/"iam_essentials.json"
+MAX_LENGTH = 42
 
 class IAMLines(BaseDataModule):
     """
@@ -35,12 +36,11 @@ class IAMLines(BaseDataModule):
     def __init__(self, args: argparse.Namespace = None):
         super().__init__(args)
         self.augment = self.args.get("augment_data", "true") == "true"
-        with open(IAM_ESSENTIALS) as f:
-            essentials = json.load(f)
-        self.mapping = list(essentials["characters"])
+        self.max_length = self.args.set("max_length", MAX_LENGTH)
+        self.mapping = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", " ", "!", "\"", "#", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "?", "<P>","<B>"]
         self.inverse_mapping = {v: k for k, v in enumerate(self.mapping)}
         self.dims = (1, IMAGE_HEIGHT, IMAGE_WIDTH)  # We assert that this is correct in setup()
-        self.output_dims = (89, 1)  # We assert that this is correct in setup()
+        self.output_dims = (self.max_length, 1)  # We assert that this is correct in setup()
         self.data_train = None
         self.data_val = None
         self.data_test = None
@@ -49,6 +49,7 @@ class IAMLines(BaseDataModule):
     def add_to_argparse(parser):
         BaseDataModule.add_to_argparse(parser)
         parser.add_argument("--augment_data", type=str, default="true")
+        parser.add_argument("--max_length", type=int, default=MAX_LENGTH) 
         return parser
 
     def prepare_data(self):
@@ -75,13 +76,14 @@ class IAMLines(BaseDataModule):
             max_aspect_ratio = float(file.read())
             image_width = int(IMAGE_HEIGHT * max_aspect_ratio)
             assert image_width <= IMAGE_WIDTH
+
         with open(PROCESSED_DATA_DIRNAME / 'trainval' / '_labels.json') as file:
             labels_trainval = json.load(file)
         with open(PROCESSED_DATA_DIRNAME / 'test' / '_labels.json') as file:
             labels_test = json.load(file)
 
-        max_label_length = max([len(label) for label in labels_trainval + labels_test]) + 2  # Add 2 because of start and end tokens.
-        output_dims = (max_label_length, 1)
+        # max_label_length = max([len(label) for label in labels_trainval + labels_test]) + 2  # Add 2 because of start and end tokens.
+        output_dims = (self.max_length, 1)
         if output_dims != self.output_dims:
             raise RuntimeError(dims, output_dims)
 

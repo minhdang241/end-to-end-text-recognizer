@@ -50,7 +50,7 @@ class IAMLines2(BaseDataModule):
 
         random.shuffle(list_paths_labels) 
         shuffled_data = list_paths_labels
-        trainval_data = shuffled_data[:int(len(list_paths_labels)*0.9)] 
+        trainval_data = shuffled_data[:int(len(list_paths_labels)*0.6)] 
         test_data = shuffled_data[int(len(list_paths_labels)*0.9):]  
         
         if stage == "fit" or stage is None:
